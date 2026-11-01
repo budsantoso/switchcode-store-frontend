@@ -37,6 +37,9 @@ export default function RootLayout({
               <a href="https://switchcode.id/news" target="_blank" className="text-xs sm:text-sm font-medium text-slate-600 hover:text-slate-900 transition">
                 News
               </a>
+              <a href="/login/" className="text-xs sm:text-sm font-medium text-slate-600 hover:text-slate-900 transition">
+                Portal Admin & Owner
+              </a>
               <a
                 href="#cart"
                 className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-slate-900 text-white text-xs sm:text-sm font-medium hover:bg-slate-800 transition shadow-sm"
