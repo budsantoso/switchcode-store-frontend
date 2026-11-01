@@ -23,7 +23,7 @@ jobs:
         run: npm ci || npm install
 
       - name: Build Static Export
-        run: npx next build --no-lint
+        run: npm run build
         env:
           NEXT_PUBLIC_API_URL: https://api-store.switchcode.id/api
 
