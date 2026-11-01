@@ -626,6 +626,8 @@ export default function AdminDashboardPage() {
             </div>
           </div>
         </div>
+      )}
+        </div>
       </main>
     </div>
   );

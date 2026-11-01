@@ -425,6 +425,8 @@ export default function OwnerDashboardPage() {
             ))}
           </div>
         </div>
+      </div>
+        </div>
       </main>
     </div>
   );
