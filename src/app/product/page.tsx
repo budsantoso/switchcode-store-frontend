@@ -24,10 +24,18 @@ function ProductDetailContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Carousel state
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [added, setAdded] = useState(false);
   const [selectedToppings, setSelectedToppings] = useState<number[]>([]);
+
+  // Checkout Modal State
+  const [showCheckout, setShowCheckout] = useState(false);
+  const [custName, setCustName] = useState("");
+  const [custEmail, setCustEmail] = useState("");
+  const [custPhone, setCustPhone] = useState("");
+  const [custNotes, setCustNotes] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [orderResult, setOrderResult] = useState<any>(null);
 
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://api-store.switchcode.id/api";
 
@@ -123,6 +131,48 @@ function ProductDetailContent() {
 
   const prevImage = () => {
     setActiveImageIndex((prev) => (prev - 1 + galleryImages.length) % galleryImages.length);
+  };
+
+  // Checkout Direct ke Backend Laravel
+  const handleProcessCheckout = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!custName || !custEmail) {
+      alert("Mohon lengkapi nama dan email Anda.");
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      const payload = {
+        customer_name: custName,
+        customer_email: custEmail,
+        customer_phone: custPhone || null,
+        notes: custNotes || null,
+        items: [
+          {
+            product_id: product.id,
+            quantity: 1,
+            topping_ids: selectedToppings,
+          }
+        ]
+      };
+
+      const res = await fetch(`${apiUrl}/orders/checkout`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (data.success) {
+        setOrderResult(data.data);
+      } else {
+        alert(data.message || "Gagal membuat pesanan.");
+      }
+    } catch (err) {
+      alert("Terjadi kesalahan jaringan.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   // Kalkulasi total harga termasuk topping yang dicentang
@@ -319,27 +369,11 @@ function ProductDetailContent() {
             {/* Purchase CTA */}
             <div className="mt-6 space-y-3">
               <button
-                onClick={() => {
-                  setAdded(true);
-                  setTimeout(() => setAdded(false), 2000);
-                }}
-                className={`w-full py-3.5 px-6 rounded-2xl font-bold text-sm flex items-center justify-center gap-2.5 transition shadow-sm cursor-pointer ${
-                  added 
-                    ? "bg-emerald-600 text-white" 
-                    : "bg-slate-900 hover:bg-slate-800 text-white active:scale-98"
-                }`}
+                onClick={() => setShowCheckout(true)}
+                className="w-full py-3.5 px-6 rounded-2xl font-bold text-sm flex items-center justify-center gap-2.5 bg-slate-900 hover:bg-slate-800 text-white active:scale-98 transition shadow-sm cursor-pointer"
               >
-                {added ? (
-                  <>
-                    <Check className="w-5 h-5" />
-                    <span>Ditambahkan ke Keranjang!</span>
-                  </>
-                ) : (
-                  <>
-                    <ShoppingCart className="w-5 h-5" />
-                    <span>Beli Sekarang / + Keranjang</span>
-                  </>
-                )}
+                <ShoppingCart className="w-5 h-5" />
+                <span>Beli Sekarang (Langsung Checkout)</span>
               </button>
 
               <div className="p-4 bg-slate-50 border border-slate-100 rounded-2xl space-y-2 text-xs text-slate-600">
@@ -356,6 +390,159 @@ function ProductDetailContent() {
           </div>
         </div>
       </div>
+
+      {/* CHECKOUT MODAL SHOPEE/TOKOPEDIA STYLE */}
+      {showCheckout && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl relative max-h-[90vh] overflow-y-auto">
+            <button
+              onClick={() => { setShowCheckout(false); setOrderResult(null); }}
+              className="absolute top-5 right-5 text-slate-400 hover:text-slate-700 font-bold text-lg"
+            >
+              ✕
+            </button>
+
+            {!orderResult ? (
+              <form onSubmit={handleProcessCheckout} className="space-y-4">
+                <div className="border-b border-slate-100 pb-3">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-sky-600 bg-sky-50 px-2 py-0.5 rounded">
+                    ⚡ Instant Checkout
+                  </span>
+                  <h3 className="text-lg font-bold text-slate-900 mt-1">Konfirmasi Pembelian</h3>
+                  <p className="text-xs text-slate-500">Produk: <span className="font-semibold text-slate-800">{product.name}</span></p>
+                </div>
+
+                {/* Topping Summary */}
+                {selectedToppings.length > 0 && (
+                  <div className="p-3 bg-amber-50/60 border border-amber-200/60 rounded-xl text-xs space-y-1">
+                    <span className="font-semibold text-amber-900 text-[11px]">Topping & Add-on Terpilih:</span>
+                    {product.modules
+                      .filter((m: any) => selectedToppings.includes(m.id))
+                      .map((m: any) => (
+                        <div key={m.id} className="flex justify-between text-slate-700 text-[11px]">
+                          <span>• {m.name}</span>
+                          <span className="font-semibold">+Rp {Number(m.price).toLocaleString("id-ID")}</span>
+                        </div>
+                      ))}
+                  </div>
+                )}
+
+                <div className="space-y-3 text-xs">
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">Nama Lengkap *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="cth: Budi Agung"
+                      value={custName}
+                      onChange={(e) => setCustName(e.target.value)}
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">Email Penerima Lisensi & Kode *</label>
+                    <input
+                      type="email"
+                      required
+                      placeholder="cth: budi@example.com"
+                      value={custEmail}
+                      onChange={(e) => setCustEmail(e.target.value)}
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">Nomor WhatsApp (Opsional)</label>
+                    <input
+                      type="tel"
+                      placeholder="cth: 08123456789"
+                      value={custPhone}
+                      onChange={(e) => setCustPhone(e.target.value)}
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">Catatan Tambahan</label>
+                    <textarea
+                      rows={2}
+                      placeholder="Request khusus atau konfigurasi tertentu..."
+                      value={custNotes}
+                      onChange={(e) => setCustNotes(e.target.value)}
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white"
+                    />
+                  </div>
+                </div>
+
+                <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
+                  <div>
+                    <span className="text-[11px] text-slate-400 block">Total Pembayaran:</span>
+                    <span className="text-xl font-black text-slate-900">
+                      Rp {finalPrice.toLocaleString("id-ID")}
+                    </span>
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="px-6 py-3 bg-sky-600 hover:bg-sky-700 text-white font-bold rounded-xl text-xs transition shadow-md shadow-sky-600/20 disabled:opacity-50"
+                  >
+                    {isSubmitting ? "Memproses..." : "Lanjut Bayar ➔"}
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <div className="text-center py-4 space-y-4">
+                <div className="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto text-xl">
+                  ✓
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900">Pesanan Berhasil Dibuat!</h3>
+                  <p className="text-xs text-slate-500 mt-1">No. Pesanan: <span className="font-mono font-bold text-slate-800">{orderResult.order_number}</span></p>
+                </div>
+
+                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 text-left text-xs space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Status:</span>
+                    <span className="font-bold text-amber-600 uppercase">{orderResult.status}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Total Tagihan:</span>
+                    <span className="font-bold text-slate-900">Rp {Number(orderResult.total_amount).toLocaleString("id-ID")}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Gateway:</span>
+                    <span className="font-medium text-slate-700 capitalize">{orderResult.payment_gateway || "Midtrans Snap"}</span>
+                  </div>
+                </div>
+
+                {orderResult.payment_url ? (
+                  <a
+                    href={orderResult.payment_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="block w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-lg transition"
+                  >
+                    Buka Halaman Pembayaran Midtrans ➔
+                  </a>
+                ) : (
+                  <p className="text-[11px] text-slate-500">
+                    Tim kami akan segera memvalidasi pesanan Anda dan mengirimkan invoice pembayaran ke email {orderResult.customer_email}.
+                  </p>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => { setShowCheckout(false); setOrderResult(null); }}
+                  className="w-full py-2.5 border border-slate-200 text-slate-700 font-semibold text-xs rounded-xl hover:bg-slate-50"
+                >
+                  Tutup
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

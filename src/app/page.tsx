@@ -1,362 +1,667 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { 
+  Search, 
+  ShoppingCart, 
+  SlidersHorizontal, 
+  Sparkles, 
+  Store, 
+  Flame, 
+  Layers, 
+  CreditCard 
+} from "lucide-react";
 
-interface Product {
+interface ProductItem {
   id: number;
   slug?: string;
   thumbnail?: string;
   name: string;
-  category: string;
-  tag: string;
-  price: number;
-  originalPrice: number;
-  rating: number;
-  salesCount: number;
-  description: string;
-  features: string[];
-  stack: string[];
+  summary?: string;
+  description?: string;
+  base_price: number | string;
+  originalPrice?: number;
+  rating?: number;
+  salesCount?: number;
+  categories?: { id: number; name: string; slug: string }[];
+  showcases?: { id: number; name: string; slug: string }[];
+  modules?: { id: number; name: string; price: number; is_required: boolean }[];
 }
 
-const PRODUCTS: Product[] = [
-  {
-    id: 1,
-    slug: "fastapi-api-gateway",
-    thumbnail: "https://images.unsplash.com/photo-1555066931-4365d14bab8c?q=80&w=800&auto=format&fit=crop",
-    name: "FastAPI High-Performance API Gateway",
-    category: "Backend Boilerplate",
-    tag: "Best Seller",
-    price: 249000,
-    originalPrice: 499000,
-    rating: 4.9,
-    salesCount: 142,
-    description: "Production-ready API Gateway dengan Redis token bucket rate limiting, JWT multi-auth, background tasks, dan Docker containerization siap pakai.",
-    features: [
-      "Redis Sliding Window Rate Limiting",
-      "Stateless JWT & Refresh Token Rotation",
-      "Prometheus & Sentry Observability",
-      "Auto-generated OpenAPI & Swagger docs"
-    ],
-    stack: ["Python 3.11+", "FastAPI", "Redis", "Docker", "PostgreSQL"]
-  },
-  {
-    id: 2,
-    slug: "saas-enterprise-invoice-intelligence",
-    thumbnail: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=800&auto=format&fit=crop",
-    name: "SaaS Enterprise Invoice Intelligence",
-    category: "Full-Stack SaaS",
-    tag: "Featured",
-    price: 399000,
-    originalPrice: 799000,
-    rating: 4.8,
-    salesCount: 89,
-    description: "Sistem ekstraksi invoice cerdas berbasis AI Vision, integrasi gateway Midtrans QRIS/VA, reconciliation report Excel, dan multi-tenant billing.",
-    features: [
-      "AI OCR Extraction (JSON Canonical Output)",
-      "Automated Payment Reconciliation",
-      "Midtrans Snap & Webhook Receiver V2",
-      "Role-Based Access Control (RBAC)"
-    ],
-    stack: ["Laravel 13", "Next.js 16", "PostgreSQL", "Tailwind CSS"]
-  },
-  {
-    id: 3,
-    slug: "doku-v2-payment-migration-bridge",
-    thumbnail: "https://images.unsplash.com/photo-1563986768609-322da13575f3?q=80&w=800&auto=format&fit=crop",
-    name: "DOKU V2 Jokul Payment Migration Bridge",
-    category: "Payment Adapter",
-    tag: "Enterprise",
-    price: 349000,
-    originalPrice: 599000,
-    rating: 5.0,
-    salesCount: 64,
-    description: "Adapter bridging otomatis untuk menerima webhook DOKU V2 JSON dan mentransformasikan ke legacy system (PeopleSoft, SAP, Core Banking).",
-    features: [
-      "HMAC-SHA256 Signature Verification",
-      "Automatic V1 / V2 Payload Detection",
-      "Oracle DB & SQL Server Dual Transaction",
-      "Zero Downtime Architecture"
-    ],
-    stack: ["Laravel 13", "Oracle OCI8", "SQL Server", "RabbitMQ"]
-  },
-  {
-    id: 4,
-    slug: "dynamic-island-windows-widget",
-    thumbnail: "https://images.unsplash.com/photo-1550745165-9bc0b252726f?q=80&w=800&auto=format&fit=crop",
-    name: "Dynamic Island Windows Desktop Widget",
-    category: "Desktop Utility",
-    tag: "New Release",
-    price: 149000,
-    originalPrice: 299000,
-    rating: 4.7,
-    salesCount: 110,
-    description: "Aplikasi widget desktop floating ala Dynamic Island untuk Windows. Terhubung live ke browser Firefox (YouTube) dan tracker Work Activity.",
-    features: [
-      "Frameless Floating Window with Glass Effect",
-      "WebSocket Real-time Media Controller",
-      "Quick Clock In / Clock Out Absensi WorkSync",
-      "Low CPU & Memory Footprint"
-    ],
-    stack: ["Python", "PyQt6", "WebSockets", "Firefox Extension"]
-  }
-];
+interface CategoryItem {
+  id: number;
+  name: string;
+  slug: string;
+}
+
+interface ShowcaseItem {
+  id: number;
+  name: string;
+  slug: string;
+  description?: string;
+}
+
+interface CartItem {
+  product: ProductItem;
+  qty: number;
+}
 
 export default function StoreHomePage() {
-  const [selectedCategory, setSelectedCategory] = useState("Semua");
-  const [cart, setCart] = useState<{ product: Product; qty: number }[]>([]);
-  const [activeModal, setActiveModal] = useState<Product | null>(null);
+  const [products, setProducts] = useState<ProductItem[]>([]);
+  const [categories, setCategories] = useState<CategoryItem[]>([]);
+  const [showcases, setShowcases] = useState<ShowcaseItem[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const categories = ["Semua", "Backend Boilerplate", "Full-Stack SaaS", "Payment Adapter", "Desktop Utility"];
+  // Shopee/Tokopedia Filters & Search States
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [selectedShowcase, setSelectedShowcase] = useState<string>("all");
+  const [sortBy, setSortBy] = useState<"latest" | "price_asc" | "price_desc">("latest");
 
-  const filteredProducts = selectedCategory === "Semua" 
-    ? PRODUCTS 
-    : PRODUCTS.filter(p => p.category === selectedCategory);
+  // Cart & Checkout
+  const [cart, setCart] = useState<CartItem[]>([]);
+  const [cartDrawerOpen, setCartDrawerOpen] = useState(false);
+  const [checkoutModalOpen, setCheckoutModalOpen] = useState(false);
+  const [custName, setCustName] = useState("");
+  const [custEmail, setCustEmail] = useState("");
+  const [custPhone, setCustPhone] = useState("");
+  const [custNotes, setCustNotes] = useState("");
+  const [submittingCheckout, setSubmittingCheckout] = useState(false);
+  const [checkoutResult, setCheckoutResult] = useState<any>(null);
 
-  const addToCart = (p: Product) => {
-    setCart(prev => {
-      const exist = prev.find(item => item.product.id === p.id);
-      if (exist) {
-        return prev.map(item => item.product.id === p.id ? { ...item, qty: item.qty + 1 } : item);
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://api-store.switchcode.id/api";
+
+  // Fetch Categories & Showcases
+  useEffect(() => {
+    const fetchMetadata = async () => {
+      try {
+        const [catRes, showRes] = await Promise.all([
+          fetch(`${apiUrl}/categories`),
+          fetch(`${apiUrl}/showcases`)
+        ]);
+        const catData = await catRes.json();
+        const showData = await showRes.json();
+        if (catData.success) setCategories(catData.data || []);
+        if (showData.success) setShowcases(showData.data || []);
+      } catch (e) {}
+    };
+    fetchMetadata();
+  }, [apiUrl]);
+
+  // Fetch Products Live dari Backend (dengan Search, Category, Showcase, Sort)
+  useEffect(() => {
+    const fetchProductsList = async () => {
+      setLoading(true);
+      try {
+        const params = new URLSearchParams();
+        if (searchQuery.trim()) params.append("search", searchQuery.trim());
+        if (selectedCategory !== "all") params.append("category_id", selectedCategory);
+        if (selectedShowcase !== "all") params.append("showcase_id", selectedShowcase);
+        if (sortBy) params.append("sort", sortBy);
+
+        const res = await fetch(`${apiUrl}/products?${params.toString()}`);
+        const data = await res.json();
+        if (data.success) {
+          const list = Array.isArray(data.data) ? data.data : (data.data?.data || []);
+          setProducts(list);
+        }
+      } catch (e) {
+      } finally {
+        setLoading(false);
       }
-      return [...prev, { product: p, qty: 1 }];
+    };
+
+    const timer = setTimeout(() => {
+      fetchProductsList();
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [searchQuery, selectedCategory, selectedShowcase, sortBy, apiUrl]);
+
+  const addToCart = (product: ProductItem) => {
+    setCart((prev) => {
+      const exist = prev.find((item) => item.product.id === product.id);
+      if (exist) {
+        return prev.map((item) =>
+          item.product.id === product.id ? { ...item, qty: item.qty + 1 } : item
+        );
+      }
+      return [...prev, { product, qty: 1 }];
     });
+    setCartDrawerOpen(true);
   };
 
-  const totalCart = cart.reduce((acc, curr) => acc + (curr.product.price * curr.qty), 0);
+  const removeFromCart = (productId: number) => {
+    setCart((prev) => prev.filter((item) => item.product.id !== productId));
+  };
+
+  const totalCart = cart.reduce(
+    (sum, item) => sum + Number(item.product.base_price) * item.qty,
+    0
+  );
+
+  const handleProcessCartCheckout = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!custName || !custEmail || cart.length === 0) return;
+
+    try {
+      setSubmittingCheckout(true);
+      const payload = {
+        customer_name: custName,
+        customer_email: custEmail,
+        customer_phone: custPhone || null,
+        notes: custNotes || null,
+        items: cart.map((item) => ({
+          product_id: item.product.id,
+          quantity: item.qty
+        }))
+      };
+
+      const res = await fetch(`${apiUrl}/orders/checkout`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (data.success) {
+        setCheckoutResult(data.data);
+        setCart([]);
+      } else {
+        alert(data.message || "Gagal membuat pesanan.");
+      }
+    } catch (err) {
+      alert("Terjadi kesalahan jaringan.");
+    } finally {
+      setSubmittingCheckout(false);
+    }
+  };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
-      {/* Hero Banner Clean Light */}
-      <section className="bg-white rounded-2xl border border-slate-200 p-8 sm:p-12 mb-10 shadow-sm relative overflow-hidden">
-        <div className="max-w-2xl">
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-50 text-sky-700 text-xs font-semibold border border-sky-100 mb-4">
-            🚀 Marketplace Resmi Switch Code
-          </span>
-          <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900 leading-tight">
-            Produk Digital, Source Code & Modul Siap Pakai
-          </h1>
-          <p className="mt-3 text-sm sm:text-base text-slate-600 leading-relaxed">
-            Percepat development produk Anda hingga 10x lipat dengan boilerplate arsitektur enterprise teruji, payment adapter, dan solusi backend terverifikasi.
-          </p>
+    <div className="space-y-8 pb-16">
+      {/* SHOPEE/TOKOPEDIA HERO SEARCH & BANNER HEADER */}
+      <section className="bg-gradient-to-b from-sky-50 via-white to-white border-b border-slate-200/80 -mt-6 sm:-mt-8 py-8 sm:py-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="max-w-3xl mx-auto text-center space-y-4">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sky-100 text-sky-800 text-xs font-semibold">
+              <Sparkles className="w-3.5 h-3.5 text-sky-600" />
+              <span>Official SwitchCode Marketplace</span>
+            </div>
+            <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
+              Beli Source Code, API & Solusi Software Siap Pakai
+            </h1>
+            <p className="text-sm sm:text-base text-slate-600">
+              Katalog resmi teknologi enterprise, arsitektur modular, dan gateway pembayaran teruji produksi.
+            </p>
 
-          <div className="mt-6 flex flex-wrap gap-4 text-xs font-medium text-slate-500">
-            <span className="flex items-center gap-1.5">✓ 100% Full Source Code</span>
-            <span className="flex items-center gap-1.5">✓ Support Deployment cPanel & Docker</span>
-            <span className="flex items-center gap-1.5">✓ Lisensi Komersial Seumur Hidup</span>
+            {/* Shopee-style Big Search Bar */}
+            <div className="pt-2">
+              <div className="relative max-w-2xl mx-auto flex items-center bg-white border-2 border-slate-300 focus-within:border-sky-500 rounded-2xl shadow-sm transition">
+                <Search className="w-5 h-5 text-slate-400 ml-4 shrink-0" />
+                <input
+                  type="text"
+                  placeholder="Cari produk software, gateway, modul, atau kata kunci (cth: API Gateway, ERP)..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full px-3 py-3.5 bg-transparent text-sm text-slate-900 placeholder:text-slate-400 focus:outline-hidden"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery("")}
+                    className="mr-3 text-slate-400 hover:text-slate-600 font-bold text-sm"
+                  >
+                    ✕
+                  </button>
+                )}
+                <div className="mr-2">
+                  <span className="hidden sm:inline-block px-3 py-1.5 bg-slate-900 text-white rounded-xl text-xs font-semibold">
+                    Cari
+                  </span>
+                </div>
+              </div>
+            </div>
           </div>
+
+          {/* Quick Showcase Tabs (Tokopedia-style Highlight Pills) */}
+          {showcases.length > 0 && (
+            <div className="mt-6 flex items-center justify-center gap-2 flex-wrap">
+              <button
+                onClick={() => setSelectedShowcase("all")}
+                className={`px-3 py-1.5 rounded-full text-xs font-semibold transition cursor-pointer flex items-center gap-1.5 ${
+                  selectedShowcase === "all"
+                    ? "bg-slate-900 text-white shadow-xs"
+                    : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
+                }`}
+              >
+                <Store className="w-3.5 h-3.5" />
+                <span>Semua Etalase</span>
+              </button>
+              {showcases.map((sc) => (
+                <button
+                  key={sc.id}
+                  onClick={() => setSelectedShowcase(String(sc.id))}
+                  className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition cursor-pointer flex items-center gap-1.5 ${
+                    selectedShowcase === String(sc.id)
+                      ? "bg-amber-500 text-white shadow-xs font-bold"
+                      : "bg-white border border-slate-200 text-slate-700 hover:border-amber-400 hover:text-amber-700"
+                  }`}
+                >
+                  <Flame className="w-3.5 h-3.5 text-amber-500" />
+                  <span>{sc.name}</span>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
-      {/* Filter Category */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-4 mb-8 scrollbar-none">
-        {categories.map(cat => (
-          <button
-            key={cat}
-            onClick={() => setSelectedCategory(cat)}
-            className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold whitespace-nowrap transition ${
-              selectedCategory === cat
-                ? "bg-slate-900 text-white shadow-sm"
-                : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"
-            }`}
-          >
-            {cat}
-          </button>
-        ))}
-      </div>
-
-      {/* Product Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
-        {filteredProducts.map(p => (
-          <div
-            key={p.id}
-            className="bg-white rounded-2xl border border-slate-200 hover:border-slate-300 transition-all hover:shadow-md p-6 flex flex-col justify-between"
-          >
-            {/* Image Thumbnail with Direct Link */}
-            <a href={`/product/?slug=${p.slug || p.id}`} className="block relative aspect-video w-full rounded-xl overflow-hidden bg-slate-100 mb-4 group cursor-pointer">
-              <img
-                src={p.thumbnail || "https://images.unsplash.com/photo-1555066931-4365d14bab8c?q=80&w=800&auto=format&fit=crop"}
-                alt={p.name}
-                className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
-              />
-              <div className="absolute inset-0 bg-slate-900/10 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
-                <span className="px-3 py-1.5 bg-white/90 backdrop-blur-xs text-slate-900 text-xs font-bold rounded-lg shadow-sm">
-                  Lihat Detail ➔
-                </span>
-              </div>
-            </a>
-
-            <div>
-              {/* Header Card */}
-              <div className="flex items-start justify-between gap-4 mb-3">
-                <span className="px-2.5 py-1 rounded-md bg-slate-100 text-slate-700 text-xs font-semibold">
-                  {p.category}
-                </span>
-                <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
-                  {p.tag}
-                </span>
-              </div>
-
-              <h2 className="text-lg font-bold text-slate-900 leading-snug hover:text-sky-600 transition cursor-pointer" onClick={() => setActiveModal(p)}>
-                {p.name}
-              </h2>
-              <p className="mt-2 text-xs sm:text-sm text-slate-600 line-clamp-2 leading-relaxed">
-                {p.description}
-              </p>
-
-              {/* Stack Badges */}
-              <div className="mt-4 flex flex-wrap gap-1.5">
-                {p.stack.map(st => (
-                  <span key={st} className="px-2 py-0.5 rounded bg-slate-50 text-slate-600 border border-slate-200 text-[11px] font-medium">
-                    {st}
-                  </span>
-                ))}
-              </div>
-
-              {/* Key Features */}
-              <ul className="mt-4 space-y-1.5 text-xs text-slate-600 border-t border-slate-100 pt-3">
-                {p.features.slice(0, 3).map((feat, idx) => (
-                  <li key={idx} className="flex items-center gap-2">
-                    <span className="text-emerald-500 font-bold">✔</span>
-                    <span>{feat}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            {/* Price & Actions */}
-            <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between">
-              <div>
-                <span className="text-xs text-slate-400 line-through">
-                  Rp {p.originalPrice.toLocaleString("id-ID")}
-                </span>
-                <div className="text-lg font-extrabold text-slate-900">
-                  Rp {p.price.toLocaleString("id-ID")}
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <a
-                  href={`/product/?slug=${p.slug || p.id}`}
-                  className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition"
-                >
-                  Detail
-                </a>
-                <button
-                  onClick={() => addToCart(p)}
-                  className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold transition active:scale-95 shadow-sm"
-                >
-                  + Keranjang
-                </button>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Floating Cart Drawer Summary */}
-      {cart.length > 0 && (
-        <div id="cart" className="fixed bottom-6 right-6 z-40 bg-white rounded-2xl border border-slate-300 shadow-2xl p-5 w-96 max-w-[calc(100vw-3rem)]">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-3">
-            <h3 className="font-bold text-sm text-slate-900 flex items-center gap-2">
-              <span>🛒 Keranjang Belanja</span>
-              <span className="px-2 py-0.5 rounded-full bg-sky-100 text-sky-800 text-xs font-bold">
-                {cart.reduce((a, b) => a + b.qty, 0)} item
-              </span>
-            </h3>
-            <button onClick={() => setCart([])} className="text-xs text-rose-500 hover:underline">
-              Kosongkan
+      {/* FILTER BAR & LIST PRODUK */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+        {/* Tokopedia/Shopee Secondary Filter Bar */}
+        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs flex flex-wrap items-center justify-between gap-4">
+          {/* Category Filter Pills */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 max-w-full">
+            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1 shrink-0">
+              <Layers className="w-3.5 h-3.5" /> Kategori:
+            </span>
+            <button
+              onClick={() => setSelectedCategory("all")}
+              className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition cursor-pointer ${
+                selectedCategory === "all"
+                  ? "bg-sky-600 text-white"
+                  : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+              }`}
+            >
+              Semua
             </button>
-          </div>
-
-          <div className="max-h-48 overflow-y-auto space-y-2.5 pr-1">
-            {cart.map((item, i) => (
-              <div key={i} className="flex justify-between items-center text-xs">
-                <div className="truncate pr-2">
-                  <p className="font-semibold text-slate-800 truncate">{item.product.name}</p>
-                  <p className="text-slate-500">Rp {item.product.price.toLocaleString("id-ID")} x {item.qty}</p>
-                </div>
-                <span className="font-bold text-slate-900 whitespace-nowrap">
-                  Rp {(item.product.price * item.qty).toLocaleString("id-ID")}
-                </span>
-              </div>
+            {categories.map((c) => (
+              <button
+                key={c.id}
+                onClick={() => setSelectedCategory(String(c.id))}
+                className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition cursor-pointer ${
+                  selectedCategory === String(c.id)
+                    ? "bg-sky-600 text-white"
+                    : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                }`}
+              >
+                {c.name}
+              </button>
             ))}
           </div>
 
-          <div className="border-t border-slate-100 pt-3 mt-3 flex justify-between items-center">
-            <span className="text-xs text-slate-500">Total Tagihan:</span>
-            <span className="font-extrabold text-base text-slate-900">
-              Rp {totalCart.toLocaleString("id-ID")}
-            </span>
+          {/* Sort Dropdown */}
+          <div className="flex items-center gap-2 shrink-0 ml-auto">
+            <SlidersHorizontal className="w-3.5 h-3.5 text-slate-400" />
+            <span className="text-xs text-slate-500 font-medium">Urutkan:</span>
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as any)}
+              className="text-xs font-semibold text-slate-700 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5 focus:outline-hidden cursor-pointer"
+            >
+              <option value="latest">Terbaru</option>
+              <option value="price_asc">Harga Terendah</option>
+              <option value="price_desc">Harga Tertinggi</option>
+            </select>
           </div>
+        </div>
 
-          <button
-            onClick={() => alert("Checkout akan terhubung langsung ke Midtrans Snap / API Store SwitchCode!")}
-            className="w-full mt-4 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs shadow-md shadow-sky-600/20 active:scale-95 transition"
-          >
-            Lanjut ke Pembayaran ➔
-          </button>
+        {/* FEED KATALOG PRODUK */}
+        {loading ? (
+          <div className="py-20 text-center">
+            <div className="w-8 h-8 border-3 border-slate-300 border-t-slate-800 rounded-full animate-spin mx-auto mb-3"></div>
+            <p className="text-xs font-semibold text-slate-500">Memuat katalog langsung dari database...</p>
+          </div>
+        ) : products.length === 0 ? (
+          <div className="py-16 text-center bg-white rounded-3xl border border-slate-200">
+            <Store className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+            <h3 className="font-bold text-slate-800 text-base">Tidak ada produk ditemukan</h3>
+            <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
+              Coba ganti kata kunci pencarian atau ubah filter kategori dan etalase yang dipilih.
+            </p>
+            <button
+              onClick={() => { setSearchQuery(""); setSelectedCategory("all"); setSelectedShowcase("all"); }}
+              className="mt-4 px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-semibold hover:bg-slate-800 transition cursor-pointer"
+            >
+              Reset Semua Filter
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+            {products.map((p) => {
+              const displayImg = p.thumbnail || "https://images.unsplash.com/photo-1555066931-4365d14bab8c?q=80&w=800&auto=format&fit=crop";
+              const priceNum = Number(p.base_price || 0);
+
+              return (
+                <div
+                  key={p.id}
+                  className="bg-white rounded-2xl border border-slate-200 hover:border-slate-300 transition-all hover:shadow-md flex flex-col justify-between overflow-hidden group"
+                >
+                  <div>
+                    {/* Tokopedia/Shopee Clickable Card Thumbnail */}
+                    <a href={`/product/?slug=${p.slug || p.id}`} className="block relative aspect-video w-full bg-slate-100 overflow-hidden">
+                      <img
+                        src={displayImg}
+                        alt={p.name}
+                        className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+                        onError={(e) => {
+                          (e.target as any).src = "https://images.unsplash.com/photo-1555066931-4365d14bab8c?q=80&w=800&auto=format&fit=crop";
+                        }}
+                      />
+                      {/* Badge Showcase / Hot Promo Overlay */}
+                      {p.showcases && p.showcases.length > 0 && (
+                        <div className="absolute top-2.5 left-2.5 flex flex-col gap-1 items-start">
+                          {p.showcases.slice(0, 1).map((sc) => (
+                            <span key={sc.id} className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-500 text-white shadow-xs">
+                              {sc.name}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                      {/* Hover CTA hint */}
+                      <div className="absolute inset-0 bg-slate-900/30 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
+                        <span className="text-[11px] font-bold text-white bg-slate-900/90 px-3 py-1.5 rounded-lg shadow-sm">
+                          Lihat Detail ➔
+                        </span>
+                      </div>
+                    </a>
+
+                    <div className="p-4 space-y-2.5">
+                      {/* Categories Badges */}
+                      <div className="flex flex-wrap gap-1">
+                        {p.categories && p.categories.length > 0 ? (
+                          p.categories.map((c) => (
+                            <span key={c.id} className="text-[10px] px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 font-semibold">
+                              {c.name}
+                            </span>
+                          ))
+                        ) : (
+                          <span className="text-[10px] px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 font-semibold">
+                            Software Solution
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Product Title */}
+                      <a href={`/product/?slug=${p.slug || p.id}`}>
+                        <h3 className="font-bold text-sm text-slate-900 group-hover:text-sky-600 transition line-clamp-2">
+                          {p.name}
+                        </h3>
+                      </a>
+
+                      {/* Summary */}
+                      <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">
+                        {p.summary || p.description}
+                      </p>
+
+                      {/* Addon / Topping Indicator */}
+                      {p.modules && p.modules.length > 0 && (
+                        <div className="text-[10px] text-amber-700 bg-amber-50 px-2 py-1 rounded-md font-medium border border-amber-200/50">
+                          🍦 Tersedia {p.modules.length} Opsi Topping
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Card Footer: Price & CTA */}
+                  <div className="p-4 pt-0">
+                    <div className="border-t border-slate-100 pt-3">
+                      <span className="text-[10px] text-slate-400 font-medium block">Mulai dari</span>
+                      <div className="text-base font-extrabold text-slate-900">
+                        Rp {priceNum.toLocaleString("id-ID")}
+                      </div>
+
+                      <div className="mt-3 grid grid-cols-2 gap-2">
+                        <a
+                          href={`/product/?slug=${p.slug || p.id}`}
+                          className="w-full text-center py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition"
+                        >
+                          Detail
+                        </a>
+                        <button
+                          onClick={() => addToCart(p)}
+                          className="w-full py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold transition active:scale-95 shadow-2xs cursor-pointer"
+                        >
+                          + Keranjang
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* FLOATING CART BUTTON (Shopee / Tokopedia Style Floating Icon) */}
+      {cart.length > 0 && (
+        <button
+          onClick={() => setCartDrawerOpen(true)}
+          className="fixed bottom-6 right-6 z-40 bg-sky-600 hover:bg-sky-700 text-white p-4 rounded-full shadow-2xl flex items-center gap-3 cursor-pointer transition transform hover:scale-105 active:scale-95"
+        >
+          <ShoppingCart className="w-6 h-6" />
+          <span className="text-xs font-extrabold bg-white text-sky-700 px-2.5 py-1 rounded-full shadow-xs">
+            {cart.reduce((a, b) => a + b.qty, 0)} item
+          </span>
+          <span className="text-xs font-bold pr-1">
+            Rp {totalCart.toLocaleString("id-ID")}
+          </span>
+        </button>
+      )}
+
+      {/* CART DRAWER MODAL */}
+      {cartDrawerOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex justify-end">
+          <div className="bg-white w-full max-w-md h-full shadow-2xl flex flex-col justify-between p-6 overflow-y-auto">
+            <div>
+              <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-4">
+                <h3 className="font-bold text-base text-slate-900 flex items-center gap-2">
+                  <ShoppingCart className="w-5 h-5 text-sky-600" />
+                  <span>Keranjang Belanja</span>
+                  <span className="px-2 py-0.5 rounded-full bg-sky-100 text-sky-800 text-xs font-bold">
+                    {cart.reduce((a, b) => a + b.qty, 0)}
+                  </span>
+                </h3>
+                <button onClick={() => setCartDrawerOpen(false)} className="text-slate-400 hover:text-slate-700 font-bold text-lg">
+                  ✕
+                </button>
+              </div>
+
+              {cart.length === 0 ? (
+                <div className="text-center py-16 space-y-2">
+                  <ShoppingCart className="w-12 h-12 text-slate-300 mx-auto" />
+                  <p className="text-sm font-semibold text-slate-600">Keranjang masih kosong</p>
+                  <p className="text-xs text-slate-400">Pilih produk software favorit Anda di katalog.</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {cart.map((item, idx) => (
+                    <div key={idx} className="p-3 bg-slate-50 border border-slate-200/80 rounded-2xl flex items-center justify-between gap-3 text-xs">
+                      <div className="truncate">
+                        <p className="font-bold text-slate-800 truncate">{item.product.name}</p>
+                        <p className="text-slate-500 text-[11px] mt-0.5">
+                          Rp {Number(item.product.base_price).toLocaleString("id-ID")} x {item.qty}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-3 shrink-0">
+                        <span className="font-bold text-slate-900">
+                          Rp {(Number(item.product.base_price) * item.qty).toLocaleString("id-ID")}
+                        </span>
+                        <button
+                          onClick={() => removeFromCart(item.product.id)}
+                          className="text-rose-500 hover:text-rose-700 font-bold px-1"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+
+                  <div className="flex justify-end pt-2">
+                    <button onClick={() => setCart([])} className="text-xs text-rose-500 hover:underline">
+                      Kosongkan Keranjang
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {cart.length > 0 && (
+              <div className="border-t border-slate-200 pt-4 space-y-3">
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-slate-500">Total Tagihan:</span>
+                  <span className="font-black text-xl text-slate-900">
+                    Rp {totalCart.toLocaleString("id-ID")}
+                  </span>
+                </div>
+                <button
+                  onClick={() => {
+                    setCartDrawerOpen(false);
+                    setCheckoutModalOpen(true);
+                  }}
+                  className="w-full py-3.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-lg transition flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <CreditCard className="w-4 h-4" />
+                  <span>Lanjut ke Pembayaran ➔</span>
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       )}
 
-      {/* Modal Detail Produk */}
-      {activeModal && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl relative">
+      {/* CHECKOUT MODAL FORM DARI KERANJANG */}
+      {checkoutModalOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl relative max-h-[90vh] overflow-y-auto">
             <button
-              onClick={() => setActiveModal(null)}
-              className="absolute top-4 right-4 text-slate-400 hover:text-slate-700 font-bold text-lg"
+              onClick={() => { setCheckoutModalOpen(false); setCheckoutResult(null); }}
+              className="absolute top-5 right-5 text-slate-400 hover:text-slate-700 font-bold text-lg"
             >
               ✕
             </button>
 
-            <span className="px-2.5 py-1 rounded-md bg-slate-100 text-slate-700 text-xs font-semibold">
-              {activeModal.category}
-            </span>
-            <h3 className="text-xl font-bold text-slate-900 mt-2">{activeModal.name}</h3>
-            <p className="text-xs text-slate-600 mt-2 leading-relaxed">{activeModal.description}</p>
-
-            <div className="mt-4">
-              <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider mb-2">Spesifikasi & Fitur:</h4>
-              <ul className="space-y-1.5 text-xs text-slate-600 bg-slate-50 p-3 rounded-xl border border-slate-100">
-                {activeModal.features.map((f, i) => (
-                  <li key={i} className="flex items-center gap-2">
-                    <span className="text-emerald-500 font-bold">✔</span>
-                    <span>{f}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            <div className="mt-4">
-              <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider mb-1">Tech Stack:</h4>
-              <div className="flex flex-wrap gap-1">
-                {activeModal.stack.map(s => (
-                  <span key={s} className="px-2 py-0.5 rounded bg-slate-100 text-slate-700 text-[11px] font-medium">
-                    {s}
+            {!checkoutResult ? (
+              <form onSubmit={handleProcessCartCheckout} className="space-y-4">
+                <div className="border-b border-slate-100 pb-3">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-sky-600 bg-sky-50 px-2 py-0.5 rounded">
+                    ⚡ Form Pembayaran
                   </span>
-                ))}
-              </div>
-            </div>
+                  <h3 className="text-lg font-bold text-slate-900 mt-1">Selesaikan Pesanan Anda</h3>
+                  <p className="text-xs text-slate-500">Checkout {cart.reduce((a, b) => a + b.qty, 0)} item produk software</p>
+                </div>
 
-            <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between">
-              <div>
-                <span className="text-xs text-slate-400 line-through">
-                  Rp {activeModal.originalPrice.toLocaleString("id-ID")}
-                </span>
-                <p className="text-xl font-black text-slate-900">
-                  Rp {activeModal.price.toLocaleString("id-ID")}
-                </p>
+                <div className="space-y-3 text-xs">
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">Nama Pemesan *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="cth: Budi Agung Santoso"
+                      value={custName}
+                      onChange={(e) => setCustName(e.target.value)}
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">Email Pengiriman Source Code *</label>
+                    <input
+                      type="email"
+                      required
+                      placeholder="cth: budi@company.com"
+                      value={custEmail}
+                      onChange={(e) => setCustEmail(e.target.value)}
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">Nomor WhatsApp Aktif</label>
+                    <input
+                      type="tel"
+                      placeholder="cth: 08123456789"
+                      value={custPhone}
+                      onChange={(e) => setCustPhone(e.target.value)}
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">Catatan Tambahan</label>
+                    <textarea
+                      rows={2}
+                      placeholder="Catatan instalasi atau domain target..."
+                      value={custNotes}
+                      onChange={(e) => setCustNotes(e.target.value)}
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl"
+                    />
+                  </div>
+                </div>
+
+                <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
+                  <div>
+                    <span className="text-[11px] text-slate-400 block">Total Bayar:</span>
+                    <span className="text-xl font-black text-slate-900">
+                      Rp {totalCart.toLocaleString("id-ID")}
+                    </span>
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={submittingCheckout}
+                    className="px-6 py-3 bg-sky-600 hover:bg-sky-700 text-white font-bold rounded-xl text-xs transition shadow-md shadow-sky-600/20 disabled:opacity-50"
+                  >
+                    {submittingCheckout ? "Memproses..." : "Konfirmasi & Bayar ➔"}
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <div className="text-center py-4 space-y-4">
+                <div className="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto text-xl">
+                  ✓
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900">Pesanan Berhasil Terbit!</h3>
+                  <p className="text-xs text-slate-500 mt-1">Nomor Order: <span className="font-mono font-bold text-slate-800">{checkoutResult.order_number}</span></p>
+                </div>
+
+                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 text-left text-xs space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Status:</span>
+                    <span className="font-bold text-amber-600 uppercase">{checkoutResult.status}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Total:</span>
+                    <span className="font-bold text-slate-900">Rp {Number(checkoutResult.total_amount).toLocaleString("id-ID")}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Email Tujuan:</span>
+                    <span className="font-medium text-slate-800">{checkoutResult.customer_email}</span>
+                  </div>
+                </div>
+
+                {checkoutResult.payment_url ? (
+                  <a
+                    href={checkoutResult.payment_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="block w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-lg transition"
+                  >
+                    Buka Pembayaran Midtrans Snap ➔
+                  </a>
+                ) : (
+                  <p className="text-[11px] text-slate-500">
+                    Konfirmasi pesanan telah tercatat di server kami dan akan diproses oleh tim SwitchCode.
+                  </p>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => { setCheckoutModalOpen(false); setCheckoutResult(null); }}
+                  className="w-full py-2.5 border border-slate-200 text-slate-700 font-semibold text-xs rounded-xl hover:bg-slate-50 cursor-pointer"
+                >
+                  Selesai
+                </button>
               </div>
-              <button
-                onClick={() => {
-                  addToCart(activeModal);
-                  setActiveModal(null);
-                }}
-                className="px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition shadow-sm"
-              >
-                + Tambah ke Keranjang
-              </button>
-            </div>
+            )}
           </div>
         </div>
       )}
