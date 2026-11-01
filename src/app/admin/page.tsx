@@ -16,7 +16,12 @@ import {
   Sliders,
   DollarSign,
   Tag,
-  ArrowUpRight
+  ArrowUpRight,
+  Store,
+  ChevronRight,
+  Menu,
+  X,
+  ShieldCheck
 } from "lucide-react";
 
 export default function AdminDashboardPage() {
@@ -24,6 +29,7 @@ export default function AdminDashboardPage() {
   const [activeTab, setActiveTab] = useState<"orders" | "products" | "categories">("orders");
   const [user, setUser] = useState<any>(null);
   const [token, setToken] = useState<string | null>(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // Data states
   const [orders, setOrders] = useState<any[]>([]);
@@ -169,82 +175,195 @@ export default function AdminDashboardPage() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      {/* Header Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-6 mb-6 border-b border-slate-200 gap-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold text-slate-900">
-              Admin Control Center
-            </h1>
-            <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-sky-100 text-sky-800 border border-sky-200">
-              {user?.role?.toUpperCase()}
-            </span>
-          </div>
-          <p className="text-xs text-slate-500 mt-1">
-            Kelola tracking pesanan customer, etalase kategori, dan katalog produk.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-3">
-          {user?.role === "owner" && (
-            <button
-              onClick={() => router.push("/owner/")}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 text-indigo-700 text-xs font-semibold rounded-lg transition"
-            >
-              <span>👑 Buka Owner Panel</span>
-              <ArrowUpRight className="w-3.5 h-3.5" />
-            </button>
-          )}
-          <button
-            onClick={handleLogout}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-slate-200 hover:bg-slate-100 text-slate-600 text-xs font-medium rounded-lg transition"
-          >
-            <LogOut className="w-3.5 h-3.5" />
-            <span>Keluar</span>
-          </button>
-        </div>
-      </div>
-
-      {message && (
-        <div className="mb-6 p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs rounded-xl flex items-center justify-between">
-          <span>{message}</span>
-          <button onClick={() => setMessage(null)} className="text-emerald-600 font-bold ml-2">×</button>
-        </div>
+    <div className="flex min-h-[calc(100vh-4rem)] bg-slate-50">
+      {/* Mobile Sidebar Overlay */}
+      {sidebarOpen && (
+        <div 
+          onClick={() => setSidebarOpen(false)}
+          className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-40 md:hidden"
+        />
       )}
 
-      {/* Tabs */}
-      <div className="flex items-center gap-2 border-b border-slate-200 pb-3 mb-6">
-        <button
-          onClick={() => setActiveTab("orders")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition ${
-            activeTab === "orders" ? "bg-slate-900 text-white shadow-sm" : "text-slate-600 hover:bg-slate-100"
-          }`}
-        >
-          <ShoppingBag className="w-4 h-4" />
-          <span>Tracking Pesanan ({orders.length})</span>
-        </button>
+      {/* Sidebar Navigation */}
+      <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-slate-200 flex flex-col justify-between transition-transform duration-200 md:static md:translate-x-0 ${
+        sidebarOpen ? "translate-x-0" : "-translate-x-full"
+      }`}>
+        <div>
+          {/* Top Branding */}
+          <div className="p-5 border-b border-slate-100 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-slate-900 text-white flex items-center justify-center font-bold text-sm shadow-xs">
+                SC
+              </div>
+              <div>
+                <div className="font-bold text-sm text-slate-900 leading-tight">SwitchCode</div>
+                <div className="text-[11px] text-slate-500 font-medium">Operations Center</div>
+              </div>
+            </div>
+            <button 
+              onClick={() => setSidebarOpen(false)}
+              className="p-1 rounded-lg text-slate-400 hover:text-slate-600 md:hidden cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
 
-        <button
-          onClick={() => setActiveTab("products")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition ${
-            activeTab === "products" ? "bg-slate-900 text-white shadow-sm" : "text-slate-600 hover:bg-slate-100"
-          }`}
-        >
-          <Package className="w-4 h-4" />
-          <span>Input & Katalog Produk ({products.length})</span>
-        </button>
+          {/* User Role Card */}
+          <div className="p-4 m-3 bg-slate-50 border border-slate-200/60 rounded-xl">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+              <span className="text-xs font-bold text-slate-800">{user?.name || "Staff Admin"}</span>
+            </div>
+            <div className="text-[11px] text-slate-500 font-medium mt-0.5">{user?.email}</div>
+            <div className="mt-2">
+              <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-sky-100 text-sky-800 border border-sky-200">
+                {user?.role || "ADMIN"}
+              </span>
+            </div>
+          </div>
 
-        <button
-          onClick={() => setActiveTab("categories")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition ${
-            activeTab === "categories" ? "bg-slate-900 text-white shadow-sm" : "text-slate-600 hover:bg-slate-100"
-          }`}
-        >
-          <FolderPlus className="w-4 h-4" />
-          <span>Kategori Etalase ({categories.length})</span>
-        </button>
-      </div>
+          {/* Navigation Links */}
+          <nav className="p-3 space-y-1 text-xs font-medium">
+            <div className="px-3 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+              Menu Utama
+            </div>
+
+            <button
+              onClick={() => { setActiveTab("orders"); setSidebarOpen(false); }}
+              className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition cursor-pointer ${
+                activeTab === "orders" 
+                  ? "bg-slate-900 text-white font-semibold shadow-xs" 
+                  : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <ShoppingBag className="w-4 h-4" />
+                <span>Tracking Pesanan</span>
+              </div>
+              <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
+                activeTab === "orders" ? "bg-white/20 text-white" : "bg-slate-100 text-slate-600"
+              }`}>
+                {orders.length}
+              </span>
+            </button>
+
+            <button
+              onClick={() => { setActiveTab("products"); setSidebarOpen(false); }}
+              className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition cursor-pointer ${
+                activeTab === "products" 
+                  ? "bg-slate-900 text-white font-semibold shadow-xs" 
+                  : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <Package className="w-4 h-4" />
+                <span>Input & Katalog Produk</span>
+              </div>
+              <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
+                activeTab === "products" ? "bg-white/20 text-white" : "bg-slate-100 text-slate-600"
+              }`}>
+                {products.length}
+              </span>
+            </button>
+
+            <button
+              onClick={() => { setActiveTab("categories"); setSidebarOpen(false); }}
+              className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition cursor-pointer ${
+                activeTab === "categories" 
+                  ? "bg-slate-900 text-white font-semibold shadow-xs" 
+                  : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <FolderPlus className="w-4 h-4" />
+                <span>Kategori Etalase</span>
+              </div>
+              <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
+                activeTab === "categories" ? "bg-white/20 text-white" : "bg-slate-100 text-slate-600"
+              }`}>
+                {categories.length}
+              </span>
+            </button>
+
+            {/* Quick Links */}
+            <div className="pt-4 px-3 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+              Akses Cepat
+            </div>
+
+            <a
+              href="/"
+              target="_blank"
+              className="flex items-center justify-between px-3.5 py-2 rounded-xl text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition"
+            >
+              <div className="flex items-center gap-3">
+                <Store className="w-4 h-4" />
+                <span>Lihat Web Toko</span>
+              </div>
+              <ArrowUpRight className="w-3.5 h-3.5 text-slate-400" />
+            </a>
+
+            {user?.role === "owner" && (
+              <button
+                onClick={() => router.push("/owner/")}
+                className="w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-indigo-700 bg-indigo-50/80 hover:bg-indigo-100 transition font-semibold cursor-pointer"
+              >
+                <div className="flex items-center gap-2.5">
+                  <ShieldCheck className="w-4 h-4 text-indigo-600" />
+                  <span>Suite Owner</span>
+                </div>
+                <ChevronRight className="w-3.5 h-3.5 text-indigo-400" />
+              </button>
+            )}
+          </nav>
+        </div>
+
+        {/* Bottom Sidebar Action */}
+        <div className="p-3 border-t border-slate-100">
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-xs text-rose-600 hover:bg-rose-50 rounded-xl transition font-medium cursor-pointer"
+          >
+            <LogOut className="w-4 h-4" />
+            <span>Keluar Sesi</span>
+          </button>
+        </div>
+      </aside>
+
+      {/* Main Content Area */}
+      <main className="flex-1 overflow-y-auto">
+        {/* Top Header for Mobile & Title Bar */}
+        <div className="bg-white border-b border-slate-200 px-4 sm:px-8 py-4 flex items-center justify-between sticky top-0 z-30">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className="p-2 -ml-2 rounded-lg text-slate-600 hover:bg-slate-100 md:hidden cursor-pointer"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+            <div>
+              <h1 className="text-lg sm:text-xl font-bold text-slate-900 capitalize">
+                {activeTab === "orders" && "Tracking Pesanan Customer"}
+                {activeTab === "products" && "Input & Manajemen Produk"}
+                {activeTab === "categories" && "Manajemen Kategori Etalase"}
+              </h1>
+              <p className="text-xs text-slate-500 hidden sm:block">
+                Pusat kontrol operasional SwitchCode Store Indonesia
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button 
+              onClick={() => { fetchOrders(); fetchProducts(); fetchCategories(); }}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-medium rounded-lg shadow-2xs transition cursor-pointer"
+            >
+              <RefreshCw className="w-3.5 h-3.5 text-slate-500" />
+              <span className="hidden sm:inline">Refresh Data</span>
+            </button>
+          </div>
+        </div>
+
+        <div className="p-4 sm:p-8 max-w-7xl mx-auto">
 
       {/* TAB 1: ORDERS TRACKING */}
       {activeTab === "orders" && (
@@ -507,7 +626,7 @@ export default function AdminDashboardPage() {
             </div>
           </div>
         </div>
-      )}
+      </main>
     </div>
   );
 }

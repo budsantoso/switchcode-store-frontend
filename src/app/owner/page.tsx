@@ -13,13 +13,20 @@ import {
   Package, 
   AlertCircle,
   CheckCircle,
-  Key
+  Key,
+  Menu,
+  X,
+  LogOut,
+  FolderPlus,
+  ArrowUpRight,
+  Store
 } from "lucide-react";
 
 export default function OwnerDashboardPage() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
   const [token, setToken] = useState<string | null>(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const [admins, setAdmins] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -111,35 +118,171 @@ export default function OwnerDashboardPage() {
     } catch (e) {}
   };
 
+  const handleLogout = () => {
+    localStorage.removeItem("switchcode_token");
+    localStorage.removeItem("switchcode_user");
+    router.push("/login/");
+  };
+
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      {/* Top Bar Owner */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-6 mb-6 border-b border-slate-200 gap-4">
+    <div className="flex min-h-[calc(100vh-4rem)] bg-slate-50">
+      {/* Mobile Sidebar Overlay */}
+      {sidebarOpen && (
+        <div 
+          onClick={() => setSidebarOpen(false)}
+          className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-40 md:hidden"
+        />
+      )}
+
+      {/* Sidebar Navigation */}
+      <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-slate-200 flex flex-col justify-between transition-transform duration-200 md:static md:translate-x-0 ${
+        sidebarOpen ? "translate-x-0" : "-translate-x-full"
+      }`}>
         <div>
-          <div className="flex items-center gap-2">
-            <Crown className="w-6 h-6 text-amber-500" />
-            <h1 className="text-2xl font-bold text-slate-900">
-              Owner Management Suite
-            </h1>
-            <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-300">
-              TOP TIER ROLE
-            </span>
+          {/* Top Branding */}
+          <div className="p-5 border-b border-slate-100 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-amber-500 text-white flex items-center justify-center font-bold text-sm shadow-xs">
+                👑
+              </div>
+              <div>
+                <div className="font-bold text-sm text-slate-900 leading-tight">SwitchCode</div>
+                <div className="text-[11px] text-amber-600 font-semibold">Owner Suite</div>
+              </div>
+            </div>
+            <button 
+              onClick={() => setSidebarOpen(false)}
+              className="p-1 rounded-lg text-slate-400 hover:text-slate-600 md:hidden cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
           </div>
-          <p className="text-xs text-slate-500 mt-1">
-            Hak akses tertinggi SwitchCode Store. Mengelola akun Admin dan delegasi wewenang operasional.
-          </p>
+
+          {/* User Role Card */}
+          <div className="p-4 m-3 bg-amber-50/50 border border-amber-200/60 rounded-xl">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+              <span className="text-xs font-bold text-slate-900">{user?.name || "Store Owner"}</span>
+            </div>
+            <div className="text-[11px] text-slate-500 font-medium mt-0.5">{user?.email}</div>
+            <div className="mt-2">
+              <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-amber-100 text-amber-800 border border-amber-300">
+                OWNER (TOP TIER)
+              </span>
+            </div>
+          </div>
+
+          {/* Navigation Links */}
+          <nav className="p-3 space-y-1 text-xs font-medium">
+            <div className="px-3 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+              Wewenang Owner
+            </div>
+
+            <button
+              className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-slate-900 text-white font-semibold shadow-xs transition cursor-pointer"
+            >
+              <div className="flex items-center gap-3">
+                <Users className="w-4 h-4 text-amber-400" />
+                <span>Manajemen Admin</span>
+              </div>
+              <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-white/20 text-white">
+                {admins.length}
+              </span>
+            </button>
+
+            {/* Sub-menu Operasional */}
+            <div className="pt-4 px-3 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+              Operasional Toko
+            </div>
+
+            <button
+              onClick={() => router.push("/admin/")}
+              className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition cursor-pointer"
+            >
+              <ShoppingBag className="w-4 h-4 text-slate-500" />
+              <span>Tracking Pesanan</span>
+            </button>
+
+            <button
+              onClick={() => router.push("/admin/")}
+              className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition cursor-pointer"
+            >
+              <Package className="w-4 h-4 text-slate-500" />
+              <span>Input & Katalog Produk</span>
+            </button>
+
+            <button
+              onClick={() => router.push("/admin/")}
+              className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition cursor-pointer"
+            >
+              <FolderPlus className="w-4 h-4 text-slate-500" />
+              <span>Kategori Etalase</span>
+            </button>
+
+            {/* Quick Links */}
+            <div className="pt-4 px-3 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+              Akses Cepat
+            </div>
+
+            <a
+              href="/"
+              target="_blank"
+              className="flex items-center justify-between px-3.5 py-2 rounded-xl text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition"
+            >
+              <div className="flex items-center gap-3">
+                <Store className="w-4 h-4" />
+                <span>Lihat Web Toko</span>
+              </div>
+              <ArrowUpRight className="w-3.5 h-3.5 text-slate-400" />
+            </a>
+          </nav>
         </div>
 
-        <div className="flex items-center gap-3">
+        {/* Bottom Sidebar Action */}
+        <div className="p-3 border-t border-slate-100">
           <button
-            onClick={() => router.push("/admin/")}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold rounded-xl transition shadow-sm"
+            onClick={handleLogout}
+            className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-xs text-rose-600 hover:bg-rose-50 rounded-xl transition font-medium cursor-pointer"
           >
-            <ArrowLeft className="w-3.5 h-3.5" />
-            <span>Buka Dashboard Operasional Admin</span>
+            <LogOut className="w-4 h-4" />
+            <span>Keluar Sesi</span>
           </button>
         </div>
-      </div>
+      </aside>
+
+      {/* Main Content Area */}
+      <main className="flex-1 overflow-y-auto">
+        {/* Top Header for Mobile & Title Bar */}
+        <div className="bg-white border-b border-slate-200 px-4 sm:px-8 py-4 flex items-center justify-between sticky top-0 z-30">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className="p-2 -ml-2 rounded-lg text-slate-600 hover:bg-slate-100 md:hidden cursor-pointer"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+            <div>
+              <h1 className="text-lg sm:text-xl font-bold text-slate-900 flex items-center gap-2">
+                <span>Manajemen Hak Akses & Staff Admin</span>
+              </h1>
+              <p className="text-xs text-slate-500 hidden sm:block">
+                Tingkat wewenang tertinggi untuk mengatur delegasi pengelola toko
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => router.push("/admin/")}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold rounded-lg shadow-2xs transition cursor-pointer"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>Buka Admin Panel</span>
+            </button>
+          </div>
+        </div>
+
+        <div className="p-4 sm:p-8 max-w-7xl mx-auto">
 
       {message && (
         <div className="mb-6 p-3.5 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs rounded-xl flex items-center justify-between">
@@ -282,7 +425,7 @@ export default function OwnerDashboardPage() {
             ))}
           </div>
         </div>
-      </div>
+      </main>
     </div>
   );
 }
