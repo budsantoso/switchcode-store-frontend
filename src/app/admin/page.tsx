@@ -57,6 +57,12 @@ export default function AdminDashboardPage() {
   const [selectedProdCats, setSelectedProdCats] = useState<number[]>([]);
   const [selectedProdShowcases, setSelectedProdShowcases] = useState<number[]>([]);
 
+  // Toppings / Add-ons state
+  const [prodToppings, setProdToppings] = useState<{ id?: number; name: string; price: number; is_required: boolean }[]>([]);
+  const [newTopName, setNewTopName] = useState("");
+  const [newTopPrice, setNewTopPrice] = useState("");
+  const [newTopReq, setNewTopReq] = useState(false);
+
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://api-store.switchcode.id/api";
 
   useEffect(() => {
@@ -165,6 +171,12 @@ export default function AdminDashboardPage() {
     setNewProdThumbnail(p.thumbnail || p.thumbnail_url || "");
     setSelectedProdCats(p.categories ? p.categories.map((c: any) => c.id) : []);
     setSelectedProdShowcases(p.showcases ? p.showcases.map((s: any) => s.id) : []);
+    setProdToppings(p.modules ? p.modules.map((m: any) => ({
+      id: m.id,
+      name: m.name,
+      price: Number(m.price || 0),
+      is_required: !!m.is_required
+    })) : []);
   };
 
   const cancelEditProduct = () => {
@@ -177,6 +189,26 @@ export default function AdminDashboardPage() {
     setNewProdGalleryUrls("");
     setSelectedProdCats([]);
     setSelectedProdShowcases([]);
+    setProdToppings([]);
+  };
+
+  const handleAddTopping = () => {
+    if (!newTopName || !newTopPrice) return;
+    setProdToppings([
+      ...prodToppings,
+      {
+        name: newTopName,
+        price: parseFloat(newTopPrice),
+        is_required: newTopReq
+      }
+    ]);
+    setNewTopName("");
+    setNewTopPrice("");
+    setNewTopReq(false);
+  };
+
+  const handleRemoveTopping = (index: number) => {
+    setProdToppings(prodToppings.filter((_, i) => i !== index));
   };
 
   const handleCreateOrUpdateProduct = async (e: React.FormEvent) => {
@@ -201,6 +233,7 @@ export default function AdminDashboardPage() {
           thumbnail: newProdThumbnail || null,
           category_ids: selectedProdCats,
           showcase_ids: selectedProdShowcases,
+          modules: prodToppings,
         })
       });
       const d = await res.json();
@@ -682,6 +715,77 @@ export default function AdminDashboardPage() {
                   placeholder="Fitur lengkap, arsitektur, spesifikasi teknis..."
                   className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl"
                 />
+              </div>
+
+              {/* SECTION FITUR TOPPING PRODUK */}
+              <div className="pt-2 border-t border-slate-100">
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block font-semibold text-slate-800 text-xs">
+                    🍦 Topping / Add-on Produk ({prodToppings.length})
+                  </label>
+                </div>
+
+                {/* List Topping yang sudah ditambahkan */}
+                {prodToppings.length > 0 && (
+                  <div className="space-y-1.5 mb-3">
+                    {prodToppings.map((top, idx) => (
+                      <div key={idx} className="flex items-center justify-between p-2 bg-amber-50/50 border border-amber-200/60 rounded-lg text-[11px]">
+                        <div>
+                          <span className="font-semibold text-slate-800">{top.name}</span>
+                          <span className="text-slate-500 ml-1.5">(+Rp {top.price.toLocaleString("id-ID")})</span>
+                          {top.is_required && (
+                            <span className="ml-1 text-[9px] px-1.5 py-0.2 rounded bg-amber-200 text-amber-900 font-bold uppercase">Wajib</span>
+                          )}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveTopping(idx)}
+                          className="text-rose-600 hover:text-rose-800 font-bold px-1"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Form mini input topping baru */}
+                <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
+                  <div className="grid grid-cols-2 gap-2">
+                    <input
+                      type="text"
+                      placeholder="Nama Topping (cth: Setup Domain)"
+                      value={newTopName}
+                      onChange={(e) => setNewTopName(e.target.value)}
+                      className="px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs"
+                    />
+                    <input
+                      type="number"
+                      placeholder="Harga (cth: 50000)"
+                      value={newTopPrice}
+                      onChange={(e) => setNewTopPrice(e.target.value)}
+                      className="px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs"
+                    />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <label className="flex items-center gap-1.5 text-[11px] text-slate-600 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={newTopReq}
+                        onChange={(e) => setNewTopReq(e.target.checked)}
+                        className="rounded text-slate-900"
+                      />
+                      <span>Topping Wajib (Required)</span>
+                    </label>
+                    <button
+                      type="button"
+                      onClick={handleAddTopping}
+                      className="px-2.5 py-1 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-[11px] font-semibold transition"
+                    >
+                      + Tambah Topping
+                    </button>
+                  </div>
+                </div>
               </div>
 
               <button

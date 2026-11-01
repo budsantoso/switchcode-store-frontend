@@ -27,6 +27,7 @@ function ProductDetailContent() {
   // Carousel state
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [added, setAdded] = useState(false);
+  const [selectedToppings, setSelectedToppings] = useState<number[]>([]);
 
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://api-store.switchcode.id/api";
 
@@ -123,6 +124,13 @@ function ProductDetailContent() {
   const prevImage = () => {
     setActiveImageIndex((prev) => (prev - 1 + galleryImages.length) % galleryImages.length);
   };
+
+  // Kalkulasi total harga termasuk topping yang dicentang
+  const basePrice = Number(product.base_price || 0);
+  const toppingsPrice = (product.modules || [])
+    .filter((m: any) => selectedToppings.includes(m.id) || m.is_required)
+    .reduce((sum: number, m: any) => sum + Number(m.price || 0), 0);
+  const finalPrice = basePrice + toppingsPrice;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
@@ -237,11 +245,76 @@ function ProductDetailContent() {
 
             {/* Price Box */}
             <div className="mt-6 pt-6 border-t border-slate-100">
-              <span className="text-xs text-slate-400 font-medium">Harga Resmi Lisensi</span>
+              <span className="text-xs text-slate-400 font-medium">Harga Total (Termasuk Topping)</span>
               <div className="text-3xl font-black text-slate-900 tracking-tight mt-0.5">
-                Rp {Number(product.base_price).toLocaleString("id-ID")}
+                Rp {finalPrice.toLocaleString("id-ID")}
               </div>
+              {toppingsPrice > 0 && (
+                <div className="text-[11px] text-slate-500 mt-1">
+                  Harga dasar: Rp {basePrice.toLocaleString("id-ID")} + Topping: Rp {toppingsPrice.toLocaleString("id-ID")}
+                </div>
+              )}
             </div>
+
+            {/* SELEKSI TOPPING / ADD-ON KHUSUS PRODUK INI */}
+            {product.modules && product.modules.length > 0 && (
+              <div className="mt-6 pt-6 border-t border-slate-100">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+                    <span>🍦 Pilihan Topping & Add-on</span>
+                  </h3>
+                  <span className="text-[10px] text-slate-400 font-medium">Kustomisasi Paket</span>
+                </div>
+
+                <div className="space-y-2">
+                  {product.modules.map((m: any) => {
+                    const isChecked = selectedToppings.includes(m.id) || m.is_required;
+                    return (
+                      <label
+                        key={m.id}
+                        className={`flex items-start justify-between p-3 rounded-xl border text-xs cursor-pointer transition ${
+                          isChecked 
+                            ? "border-sky-500 bg-sky-50/40" 
+                            : "border-slate-200 bg-white hover:bg-slate-50"
+                        }`}
+                      >
+                        <div className="flex items-start gap-2.5">
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            disabled={m.is_required}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedToppings([...selectedToppings, m.id]);
+                              } else {
+                                setSelectedToppings(selectedToppings.filter((id) => id !== m.id));
+                              }
+                            }}
+                            className="mt-0.5 rounded text-slate-900"
+                          />
+                          <div>
+                            <div className="font-semibold text-slate-900 flex items-center gap-1.5">
+                              <span>{m.name}</span>
+                              {m.is_required && (
+                                <span className="text-[9px] px-1.5 py-0.2 rounded bg-amber-100 text-amber-800 font-bold uppercase">
+                                  Wajib
+                                </span>
+                              )}
+                            </div>
+                            {m.description && (
+                              <p className="text-[11px] text-slate-500 mt-0.5">{m.description}</p>
+                            )}
+                          </div>
+                        </div>
+                        <span className="font-bold text-slate-900 shrink-0 ml-2">
+                          +Rp {Number(m.price).toLocaleString("id-ID")}
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             {/* Purchase CTA */}
             <div className="mt-6 space-y-3">
