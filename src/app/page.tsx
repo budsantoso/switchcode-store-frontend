@@ -4,6 +4,8 @@ import { useState } from "react";
 
 interface Product {
   id: number;
+  slug?: string;
+  thumbnail?: string;
   name: string;
   category: string;
   tag: string;
@@ -19,6 +21,8 @@ interface Product {
 const PRODUCTS: Product[] = [
   {
     id: 1,
+    slug: "fastapi-api-gateway",
+    thumbnail: "https://images.unsplash.com/photo-1555066931-4365d14bab8c?q=80&w=800&auto=format&fit=crop",
     name: "FastAPI High-Performance API Gateway",
     category: "Backend Boilerplate",
     tag: "Best Seller",
@@ -37,55 +41,61 @@ const PRODUCTS: Product[] = [
   },
   {
     id: 2,
+    slug: "saas-enterprise-invoice-intelligence",
+    thumbnail: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=800&auto=format&fit=crop",
     name: "SaaS Enterprise Invoice Intelligence",
     category: "Full-Stack SaaS",
     tag: "Featured",
     price: 399000,
     originalPrice: 799000,
-    rating: 5.0,
-    salesCount: 88,
+    rating: 4.8,
+    salesCount: 89,
     description: "Sistem ekstraksi invoice cerdas berbasis AI Vision, integrasi gateway Midtrans QRIS/VA, reconciliation report Excel, dan multi-tenant billing.",
     features: [
       "AI OCR Extraction (JSON Canonical Output)",
       "Automated Payment Reconciliation",
       "Midtrans Snap & Webhook Receiver V2",
-      "Custom PDF Invoice Layout Designer"
+      "Role-Based Access Control (RBAC)"
     ],
     stack: ["Laravel 13", "Next.js 16", "PostgreSQL", "Tailwind CSS"]
   },
   {
     id: 3,
+    slug: "doku-v2-payment-migration-bridge",
+    thumbnail: "https://images.unsplash.com/photo-1563986768609-322da13575f3?q=80&w=800&auto=format&fit=crop",
     name: "DOKU V2 Jokul Payment Migration Bridge",
     category: "Payment Adapter",
     tag: "Enterprise",
     price: 349000,
     originalPrice: 599000,
-    rating: 4.8,
-    salesCount: 65,
+    rating: 5.0,
+    salesCount: 64,
     description: "Adapter bridging otomatis untuk menerima webhook DOKU V2 JSON dan mentransformasikan ke legacy system (PeopleSoft, SAP, Core Banking).",
     features: [
       "HMAC-SHA256 Signature Verification",
       "Automatic V1 / V2 Payload Detection",
       "Oracle DB & SQL Server Dual Transaction",
-      "MinIO Storage Raw Request Archiving"
+      "Zero Downtime Architecture"
     ],
     stack: ["Laravel 13", "Oracle OCI8", "SQL Server", "RabbitMQ"]
   },
   {
     id: 4,
+    slug: "dynamic-island-windows-widget",
+    thumbnail: "https://images.unsplash.com/photo-1550745165-9bc0b252726f?q=80&w=800&auto=format&fit=crop",
     name: "Dynamic Island Windows Desktop Widget",
     category: "Desktop Utility",
     tag: "New Release",
     price: 149000,
     originalPrice: 299000,
-    rating: 4.9,
-    salesCount: 39,
+    rating: 4.7,
+    salesCount: 110,
     description: "Aplikasi widget desktop floating ala Dynamic Island untuk Windows. Terhubung live ke browser Firefox (YouTube) dan tracker Work Activity.",
     features: [
       "Frameless Floating Window with Glass Effect",
       "WebSocket Real-time Media Controller",
       "Quick Clock In / Clock Out Absensi WorkSync",
-      "Ultra-low RAM Usage (< 45MB)"
+      "Low CPU & Memory Footprint"
     ],
     stack: ["Python", "PyQt6", "WebSockets", "Firefox Extension"]
   }
