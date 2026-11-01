@@ -134,6 +134,25 @@ export default function StoreHomePage() {
     setCart((prev) => prev.filter((item) => item.product.id !== productId));
   };
 
+  const handleOpenCartCheckout = () => {
+    // Verifikasi sesi login pelanggan
+    const savedUser = localStorage.getItem("switchcode_user");
+    if (!savedUser) {
+      setCartDrawerOpen(false);
+      window.location.href = `/login/?redirect=${encodeURIComponent("/#cart")}`;
+      return;
+    }
+
+    try {
+      const u = JSON.parse(savedUser);
+      if (u.name) setCustName(u.name);
+      if (u.email) setCustEmail(u.email);
+    } catch (e) {}
+
+    setCartDrawerOpen(false);
+    setCheckoutModalOpen(true);
+  };
+
   const totalCart = cart.reduce(
     (sum, item) => sum + Number(item.product.base_price) * item.qty,
     0
@@ -513,10 +532,7 @@ export default function StoreHomePage() {
                   </span>
                 </div>
                 <button
-                  onClick={() => {
-                    setCartDrawerOpen(false);
-                    setCheckoutModalOpen(true);
-                  }}
+                  onClick={handleOpenCartCheckout}
                   className="w-full py-3.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-lg transition flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <CreditCard className="w-4 h-4" />

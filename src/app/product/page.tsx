@@ -133,6 +133,25 @@ function ProductDetailContent() {
     setActiveImageIndex((prev) => (prev - 1 + galleryImages.length) % galleryImages.length);
   };
 
+  const handleInitiateOrder = () => {
+    // Cek status login akun (Shopee/Tokopedia mandatory auth before purchase)
+    const savedUser = localStorage.getItem("switchcode_user");
+    if (!savedUser) {
+      // Belum login, redirect ke /login dengan parameter redirect balik
+      const currentPath = `/product/?slug=${product.slug || product.id}`;
+      router.push(`/login/?redirect=${encodeURIComponent(currentPath)}`);
+      return;
+    }
+
+    try {
+      const u = JSON.parse(savedUser);
+      if (u.name) setCustName(u.name);
+      if (u.email) setCustEmail(u.email);
+    } catch (e) {}
+
+    setShowCheckout(true);
+  };
+
   // Checkout Direct ke Backend Laravel
   const handleProcessCheckout = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -369,7 +388,7 @@ function ProductDetailContent() {
             {/* Purchase CTA */}
             <div className="mt-6 space-y-3">
               <button
-                onClick={() => setShowCheckout(true)}
+                onClick={handleInitiateOrder}
                 className="w-full py-3.5 px-6 rounded-2xl font-bold text-sm flex items-center justify-center gap-2.5 bg-slate-900 hover:bg-slate-800 text-white active:scale-98 transition shadow-sm cursor-pointer"
               >
                 <ShoppingCart className="w-5 h-5" />
