@@ -51,6 +51,9 @@ export default function AdminDashboardPage() {
   const [newProdPrice, setNewProdPrice] = useState("");
   const [newProdSummary, setNewProdSummary] = useState("");
   const [newProdDesc, setNewProdDesc] = useState("");
+  const [editingProductId, setEditingProductId] = useState<number | null>(null);
+  const [newProdThumbnail, setNewProdThumbnail] = useState<string>("");
+  const [newProdGalleryUrls, setNewProdGalleryUrls] = useState<string>("");
   const [selectedProdCats, setSelectedProdCats] = useState<number[]>([]);
   const [selectedProdShowcases, setSelectedProdShowcases] = useState<number[]>([]);
 
@@ -153,12 +156,39 @@ export default function AdminDashboardPage() {
     } catch (e) {}
   };
 
-  const handleCreateProduct = async (e: React.FormEvent) => {
+  const startEditProduct = (p: any) => {
+    setEditingProductId(p.id);
+    setNewProdName(p.name || "");
+    setNewProdPrice(String(p.base_price || ""));
+    setNewProdSummary(p.summary || "");
+    setNewProdDesc(p.description || "");
+    setNewProdThumbnail(p.thumbnail || p.thumbnail_url || "");
+    setSelectedProdCats(p.categories ? p.categories.map((c: any) => c.id) : []);
+    setSelectedProdShowcases(p.showcases ? p.showcases.map((s: any) => s.id) : []);
+  };
+
+  const cancelEditProduct = () => {
+    setEditingProductId(null);
+    setNewProdName("");
+    setNewProdPrice("");
+    setNewProdSummary("");
+    setNewProdDesc("");
+    setNewProdThumbnail("");
+    setNewProdGalleryUrls("");
+    setSelectedProdCats([]);
+    setSelectedProdShowcases([]);
+  };
+
+  const handleCreateOrUpdateProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newProdName || !newProdPrice) return;
     try {
-      const res = await fetch(`${apiUrl}/admin/products`, {
-        method: "POST",
+      const isEdit = !!editingProductId;
+      const endpoint = isEdit ? `${apiUrl}/admin/products/${editingProductId}` : `${apiUrl}/admin/products`;
+      const method = isEdit ? "PUT" : "POST";
+
+      const res = await fetch(endpoint, {
+        method,
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`
@@ -168,19 +198,15 @@ export default function AdminDashboardPage() {
           base_price: parseFloat(newProdPrice),
           summary: newProdSummary,
           description: newProdDesc,
+          thumbnail: newProdThumbnail || null,
           category_ids: selectedProdCats,
           showcase_ids: selectedProdShowcases,
         })
       });
       const d = await res.json();
       if (d.success) {
-        setMessage(`Produk "${newProdName}" berhasil disimpan dengan multi kategori.`);
-        setNewProdName("");
-        setNewProdPrice("");
-        setNewProdSummary("");
-        setNewProdDesc("");
-        setSelectedProdCats([]);
-        setSelectedProdShowcases([]);
+        setMessage(isEdit ? `Produk "${newProdName}" berhasil diupdate.` : `Produk "${newProdName}" berhasil disimpan.`);
+        cancelEditProduct();
         fetchProducts();
       }
     } catch (e) {}
@@ -520,13 +546,24 @@ export default function AdminDashboardPage() {
       {/* TAB 2: PRODUCTS INPUT & LIST */}
       {activeTab === "products" && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Form Input Produk */}
+          {/* Form Input / Edit Produk */}
           <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-2xs h-fit">
-            <h2 className="font-bold text-sm text-slate-900 mb-4 flex items-center gap-2">
-              <Plus className="w-4 h-4 text-sky-600" />
-              <span>Input Produk Baru</span>
-            </h2>
-            <form onSubmit={handleCreateProduct} className="space-y-3 text-xs">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="font-bold text-sm text-slate-900 flex items-center gap-2">
+                <Plus className="w-4 h-4 text-sky-600" />
+                <span>{editingProductId ? "Edit Data Produk" : "Input Produk Baru"}</span>
+              </h2>
+              {editingProductId && (
+                <button
+                  type="button"
+                  onClick={cancelEditProduct}
+                  className="text-xs text-rose-600 hover:underline font-semibold"
+                >
+                  Batal Edit
+                </button>
+              )}
+            </div>
+            <form onSubmit={handleCreateOrUpdateProduct} className="space-y-3 text-xs">
               <div>
                 <label className="block font-semibold text-slate-700 mb-1">Nama Produk</label>
                 <input
@@ -537,6 +574,22 @@ export default function AdminDashboardPage() {
                   placeholder="Contoh: Microservice Starter Pack"
                   className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl"
                 />
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">
+                  Gambar / Thumbnail URL (Tampil ke Customer)
+                </label>
+                <input
+                  type="text"
+                  value={newProdThumbnail}
+                  onChange={(e) => setNewProdThumbnail(e.target.value)}
+                  placeholder="https://... atau /products/img.jpg"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl"
+                />
+                <p className="text-[10px] text-slate-400 mt-0.5">
+                  URL gambar mockup / screenshot untuk carousel & cover produk
+                </p>
               </div>
 
               <div>
@@ -633,9 +686,9 @@ export default function AdminDashboardPage() {
 
               <button
                 type="submit"
-                className="w-full py-2 bg-slate-900 hover:bg-slate-800 text-white font-semibold rounded-xl transition cursor-pointer mt-2"
+                className="w-full py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-semibold rounded-xl transition cursor-pointer mt-2"
               >
-                + Simpan Produk
+                {editingProductId ? "Simpan Perubahan Produk" : "+ Simpan Produk"}
               </button>
             </form>
           </div>
@@ -681,9 +734,18 @@ export default function AdminDashboardPage() {
                       Rp {Number(p.base_price).toLocaleString("id-ID")}
                     </div>
                   </div>
-                  <span className="text-[11px] px-2 py-1 rounded-full bg-emerald-50 text-emerald-700 font-semibold border border-emerald-200">
-                    Aktif
-                  </span>
+                  <div className="flex flex-col items-end gap-2 shrink-0">
+                    <span className="text-[11px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-semibold border border-emerald-200">
+                      Aktif
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => startEditProduct(p)}
+                      className="px-3 py-1 bg-slate-900 hover:bg-slate-800 text-white text-[11px] font-semibold rounded-lg shadow-2xs transition cursor-pointer"
+                    >
+                      ✏️ Edit Produk
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>

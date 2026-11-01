@@ -161,6 +161,20 @@ export default function StoreHomePage() {
             key={p.id}
             className="bg-white rounded-2xl border border-slate-200 hover:border-slate-300 transition-all hover:shadow-md p-6 flex flex-col justify-between"
           >
+            {/* Image Thumbnail with Direct Link */}
+            <a href={`/product/?slug=${p.slug || p.id}`} className="block relative aspect-video w-full rounded-xl overflow-hidden bg-slate-100 mb-4 group cursor-pointer">
+              <img
+                src={p.thumbnail || "https://images.unsplash.com/photo-1555066931-4365d14bab8c?q=80&w=800&auto=format&fit=crop"}
+                alt={p.name}
+                className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+              />
+              <div className="absolute inset-0 bg-slate-900/10 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
+                <span className="px-3 py-1.5 bg-white/90 backdrop-blur-xs text-slate-900 text-xs font-bold rounded-lg shadow-sm">
+                  Lihat Detail ➔
+                </span>
+              </div>
+            </a>
+
             <div>
               {/* Header Card */}
               <div className="flex items-start justify-between gap-4 mb-3">
@@ -211,12 +225,12 @@ export default function StoreHomePage() {
               </div>
 
               <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setActiveModal(p)}
+                <a
+                  href={`/product/?slug=${p.slug || p.id}`}
                   className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition"
                 >
                   Detail
-                </button>
+                </a>
                 <button
                   onClick={() => addToCart(p)}
                   className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold transition active:scale-95 shadow-sm"
