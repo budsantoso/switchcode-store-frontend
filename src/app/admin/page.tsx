@@ -26,7 +26,7 @@ import {
 
 export default function AdminDashboardPage() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<"orders" | "products" | "categories">("orders");
+  const [activeTab, setActiveTab] = useState<"orders" | "products" | "categories" | "showcases">("orders");
   const [user, setUser] = useState<any>(null);
   const [token, setToken] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -35,6 +35,7 @@ export default function AdminDashboardPage() {
   const [orders, setOrders] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
+  const [showcases, setShowcases] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
@@ -42,11 +43,16 @@ export default function AdminDashboardPage() {
   const [newCatName, setNewCatName] = useState("");
   const [newCatDesc, setNewCatDesc] = useState("");
 
+  const [newShowcaseName, setNewShowcaseName] = useState("");
+  const [newShowcaseDesc, setNewShowcaseDesc] = useState("");
+  const [selectedShowcaseProds, setSelectedShowcaseProds] = useState<number[]>([]);
+
   const [newProdName, setNewProdName] = useState("");
-  const [newProdCat, setNewProdCat] = useState("");
   const [newProdPrice, setNewProdPrice] = useState("");
   const [newProdSummary, setNewProdSummary] = useState("");
   const [newProdDesc, setNewProdDesc] = useState("");
+  const [selectedProdCats, setSelectedProdCats] = useState<number[]>([]);
+  const [selectedProdShowcases, setSelectedProdShowcases] = useState<number[]>([]);
 
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://api-store.switchcode.id/api";
 
@@ -67,6 +73,7 @@ export default function AdminDashboardPage() {
       fetchOrders();
       fetchProducts();
       fetchCategories();
+      fetchShowcases();
     }
   }, [token]);
 
@@ -95,6 +102,14 @@ export default function AdminDashboardPage() {
       const res = await fetch(`${apiUrl}/categories`);
       const d = await res.json();
       if (d.success) setCategories(d.data || []);
+    } catch (e) {}
+  };
+
+  const fetchShowcases = async () => {
+    try {
+      const res = await fetch(`${apiUrl}/showcases`);
+      const d = await res.json();
+      if (d.success) setShowcases(d.data || []);
     } catch (e) {}
   };
 
@@ -150,20 +165,50 @@ export default function AdminDashboardPage() {
         },
         body: JSON.stringify({
           name: newProdName,
-          category: newProdCat,
           base_price: parseFloat(newProdPrice),
           summary: newProdSummary,
-          description: newProdDesc
+          description: newProdDesc,
+          category_ids: selectedProdCats,
+          showcase_ids: selectedProdShowcases,
         })
       });
       const d = await res.json();
       if (d.success) {
-        setMessage(`Produk "${newProdName}" berhasil disimpan ke etalase.`);
+        setMessage(`Produk "${newProdName}" berhasil disimpan dengan multi kategori.`);
         setNewProdName("");
         setNewProdPrice("");
         setNewProdSummary("");
         setNewProdDesc("");
+        setSelectedProdCats([]);
+        setSelectedProdShowcases([]);
         fetchProducts();
+      }
+    } catch (e) {}
+  };
+
+  const handleCreateShowcase = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newShowcaseName) return;
+    try {
+      const res = await fetch(`${apiUrl}/admin/showcases`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          name: newShowcaseName,
+          description: newShowcaseDesc,
+          product_ids: selectedShowcaseProds
+        })
+      });
+      const d = await res.json();
+      if (d.success) {
+        setMessage(`Etalase "${newShowcaseName}" berhasil dibuat dengan ${selectedShowcaseProds.length} produk.`);
+        setNewShowcaseName("");
+        setNewShowcaseDesc("");
+        setSelectedShowcaseProds([]);
+        fetchShowcases();
       }
     } catch (e) {}
   };
@@ -257,7 +302,7 @@ export default function AdminDashboardPage() {
             >
               <div className="flex items-center gap-3">
                 <Package className="w-4 h-4" />
-                <span>Input & Katalog Produk</span>
+                <span>List Produk</span>
               </div>
               <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
                 activeTab === "products" ? "bg-white/20 text-white" : "bg-slate-100 text-slate-600"
@@ -275,13 +320,32 @@ export default function AdminDashboardPage() {
               }`}
             >
               <div className="flex items-center gap-3">
-                <FolderPlus className="w-4 h-4" />
-                <span>Kategori Etalase</span>
+                <Tag className="w-4 h-4" />
+                <span>Kategori</span>
               </div>
               <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
                 activeTab === "categories" ? "bg-white/20 text-white" : "bg-slate-100 text-slate-600"
               }`}>
                 {categories.length}
+              </span>
+            </button>
+
+            <button
+              onClick={() => { setActiveTab("showcases"); setSidebarOpen(false); }}
+              className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition cursor-pointer ${
+                activeTab === "showcases" 
+                  ? "bg-slate-900 text-white font-semibold shadow-xs" 
+                  : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <Store className="w-4 h-4" />
+                <span>Etalase Toko</span>
+              </div>
+              <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
+                activeTab === "showcases" ? "bg-white/20 text-white" : "bg-slate-100 text-slate-600"
+              }`}>
+                {showcases.length}
               </span>
             </button>
 
@@ -343,8 +407,9 @@ export default function AdminDashboardPage() {
             <div>
               <h1 className="text-lg sm:text-xl font-bold text-slate-900 capitalize">
                 {activeTab === "orders" && "Tracking Pesanan Customer"}
-                {activeTab === "products" && "Input & Manajemen Produk"}
-                {activeTab === "categories" && "Manajemen Kategori Etalase"}
+                {activeTab === "products" && "List Produk & Tambah Produk (Multi Kategori)"}
+                {activeTab === "categories" && "Manajemen Kategori Produk"}
+                {activeTab === "showcases" && "Manajemen Etalase Toko"}
               </h1>
               <p className="text-xs text-slate-500 hidden sm:block">
                 Pusat kontrol operasional SwitchCode Store Indonesia
@@ -456,7 +521,7 @@ export default function AdminDashboardPage() {
       {activeTab === "products" && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Form Input Produk */}
-          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm h-fit">
+          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-2xs h-fit">
             <h2 className="font-bold text-sm text-slate-900 mb-4 flex items-center gap-2">
               <Plus className="w-4 h-4 text-sky-600" />
               <span>Input Produk Baru</span>
@@ -475,21 +540,61 @@ export default function AdminDashboardPage() {
               </div>
 
               <div>
-                <label className="block font-semibold text-slate-700 mb-1">Kategori Etalase</label>
-                <select
-                  value={newProdCat}
-                  onChange={(e) => setNewProdCat(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl"
-                >
-                  <option value="">Pilih Kategori...</option>
-                  {categories.map((c) => (
-                    <option key={c.id} value={c.name}>{c.name}</option>
-                  ))}
-                  <option value="Backend Boilerplate">Backend Boilerplate</option>
-                  <option value="Full-Stack SaaS">Full-Stack SaaS</option>
-                  <option value="Payment Adapter">Payment Adapter</option>
-                  <option value="Desktop Utility">Desktop Utility</option>
-                </select>
+                <label className="block font-semibold text-slate-700 mb-1">
+                  Pilih Kategori (Bisa Multi-Kategori)
+                </label>
+                <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl max-h-32 overflow-y-auto space-y-1.5">
+                  {categories.length === 0 ? (
+                    <span className="text-slate-400 text-[11px]">Belum ada kategori</span>
+                  ) : (
+                    categories.map((c) => (
+                      <label key={c.id} className="flex items-center gap-2 cursor-pointer hover:text-slate-900">
+                        <input
+                          type="checkbox"
+                          checked={selectedProdCats.includes(c.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedProdCats([...selectedProdCats, c.id]);
+                            } else {
+                              setSelectedProdCats(selectedProdCats.filter((id) => id !== c.id));
+                            }
+                          }}
+                          className="rounded text-slate-900"
+                        />
+                        <span>{c.name}</span>
+                      </label>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">
+                  Pilih Etalase Toko (Opsional)
+                </label>
+                <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl max-h-32 overflow-y-auto space-y-1.5">
+                  {showcases.length === 0 ? (
+                    <span className="text-slate-400 text-[11px]">Belum ada etalase</span>
+                  ) : (
+                    showcases.map((s) => (
+                      <label key={s.id} className="flex items-center gap-2 cursor-pointer hover:text-slate-900">
+                        <input
+                          type="checkbox"
+                          checked={selectedProdShowcases.includes(s.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedProdShowcases([...selectedProdShowcases, s.id]);
+                            } else {
+                              setSelectedProdShowcases(selectedProdShowcases.filter((id) => id !== s.id));
+                            }
+                          }}
+                          className="rounded text-slate-900"
+                        />
+                        <span>{s.name}</span>
+                      </label>
+                    ))
+                  )}
+                </div>
               </div>
 
               <div>
@@ -510,7 +615,7 @@ export default function AdminDashboardPage() {
                   rows={2}
                   value={newProdSummary}
                   onChange={(e) => setNewProdSummary(e.target.value)}
-                  placeholder="Ringkasan 1-2 kalimat untuk kartu etalase"
+                  placeholder="Ringkasan 1-2 kalimat untuk kartu katalog"
                   className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl"
                 />
               </div>
@@ -530,29 +635,49 @@ export default function AdminDashboardPage() {
                 type="submit"
                 className="w-full py-2 bg-slate-900 hover:bg-slate-800 text-white font-semibold rounded-xl transition cursor-pointer mt-2"
               >
-                + Simpan ke Etalase
+                + Simpan Produk
               </button>
             </form>
           </div>
 
           {/* List Produk Aktif */}
-          <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden">
             <div className="p-4 border-b border-slate-100 flex items-center justify-between">
-              <h2 className="font-bold text-sm text-slate-800">Katalog Produk Aktif</h2>
+              <h2 className="font-bold text-sm text-slate-800">List Produk Terdaftar</h2>
               <span className="text-xs text-slate-500">{products.length} Item</span>
             </div>
             <div className="divide-y divide-slate-100">
               {products.map((p) => (
                 <div key={p.id} className="p-4 flex items-center justify-between gap-4 hover:bg-slate-50">
                   <div>
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-bold text-sm text-slate-900">{p.name}</h3>
-                      <span className="text-[11px] px-2 py-0.5 rounded bg-slate-100 text-slate-600 font-medium">
-                        {p.category || "General"}
-                      </span>
-                    </div>
+                    <h3 className="font-bold text-sm text-slate-900">{p.name}</h3>
                     <p className="text-xs text-slate-500 mt-0.5 line-clamp-1">{p.summary}</p>
-                    <div className="text-xs font-bold text-slate-900 mt-1">
+                    
+                    {/* Multi Categories Badges */}
+                    <div className="mt-2 flex flex-wrap gap-1">
+                      {p.categories && p.categories.length > 0 ? (
+                        p.categories.map((c: any) => (
+                          <span key={c.id} className="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 font-medium border border-slate-200">
+                            🏷️ {c.name}
+                          </span>
+                        ))
+                      ) : (
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-50 text-slate-400">
+                          Tanpa Kategori
+                        </span>
+                      )}
+
+                      {/* Showcases Badges */}
+                      {p.showcases && p.showcases.length > 0 && (
+                        p.showcases.map((s: any) => (
+                          <span key={s.id} className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 font-medium border border-indigo-200">
+                            🏪 {s.name}
+                          </span>
+                        ))
+                      )}
+                    </div>
+
+                    <div className="text-xs font-bold text-slate-900 mt-2">
                       Rp {Number(p.base_price).toLocaleString("id-ID")}
                     </div>
                   </div>
@@ -569,7 +694,7 @@ export default function AdminDashboardPage() {
       {/* TAB 3: CATEGORIES INPUT & LIST */}
       {activeTab === "categories" && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm h-fit">
+          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-2xs h-fit">
             <h2 className="font-bold text-sm text-slate-900 mb-4 flex items-center gap-2">
               <Plus className="w-4 h-4 text-sky-600" />
               <span>Input Kategori Baru</span>
@@ -605,9 +730,9 @@ export default function AdminDashboardPage() {
             </form>
           </div>
 
-          <div className="md:col-span-2 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div className="md:col-span-2 bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden">
             <div className="p-4 border-b border-slate-100 flex items-center justify-between">
-              <h2 className="font-bold text-sm text-slate-800">Daftar Kategori Etalase</h2>
+              <h2 className="font-bold text-sm text-slate-800">Daftar Kategori Produk</h2>
               <span className="text-xs text-slate-500">{categories.length} Kategori</span>
             </div>
             <div className="divide-y divide-slate-100">
@@ -623,6 +748,117 @@ export default function AdminDashboardPage() {
                   </span>
                 </div>
               ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 4: SHOWCASES (ETALASE) INPUT & LIST */}
+      {activeTab === "showcases" && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-2xs h-fit">
+            <h2 className="font-bold text-sm text-slate-900 mb-4 flex items-center gap-2">
+              <Plus className="w-4 h-4 text-indigo-600" />
+              <span>Buat Etalase Baru</span>
+            </h2>
+            <form onSubmit={handleCreateShowcase} className="space-y-3 text-xs">
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">Nama Etalase</label>
+                <input
+                  type="text"
+                  required
+                  value={newShowcaseName}
+                  onChange={(e) => setNewShowcaseName(e.target.value)}
+                  placeholder="Contoh: Promo Ramadhan / Best Seller 2026"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl"
+                />
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">Deskripsi Etalase</label>
+                <textarea
+                  rows={2}
+                  value={newShowcaseDesc}
+                  onChange={(e) => setNewShowcaseDesc(e.target.value)}
+                  placeholder="Koleksi produk unggulan dengan diskon khusus"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl"
+                />
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">
+                  Pilih Produk yang Masuk ke Etalase Ini (Banyak Produk)
+                </label>
+                <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl max-h-40 overflow-y-auto space-y-1.5">
+                  {products.length === 0 ? (
+                    <span className="text-slate-400 text-[11px]">Belum ada produk</span>
+                  ) : (
+                    products.map((p) => (
+                      <label key={p.id} className="flex items-center gap-2 cursor-pointer hover:text-slate-900">
+                        <input
+                          type="checkbox"
+                          checked={selectedShowcaseProds.includes(p.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedShowcaseProds([...selectedShowcaseProds, p.id]);
+                            } else {
+                              setSelectedShowcaseProds(selectedShowcaseProds.filter((id) => id !== p.id));
+                            }
+                          }}
+                          className="rounded text-slate-900"
+                        />
+                        <span className="truncate">{p.name}</span>
+                      </label>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                className="w-full py-2 bg-slate-900 hover:bg-slate-800 text-white font-semibold rounded-xl transition cursor-pointer mt-2"
+              >
+                + Simpan Etalase
+              </button>
+            </form>
+          </div>
+
+          <div className="md:col-span-2 bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden">
+            <div className="p-4 border-b border-slate-100 flex items-center justify-between">
+              <h2 className="font-bold text-sm text-slate-800">Daftar Etalase Toko</h2>
+              <span className="text-xs text-slate-500">{showcases.length} Etalase</span>
+            </div>
+            <div className="divide-y divide-slate-100">
+              {showcases.length === 0 ? (
+                <div className="p-8 text-center text-xs text-slate-500">Belum ada etalase dibuat.</div>
+              ) : (
+                showcases.map((s) => (
+                  <div key={s.id} className="p-4 hover:bg-slate-50">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="font-bold text-sm text-slate-900 flex items-center gap-2">
+                          <span>🏪 {s.name}</span>
+                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 font-semibold border border-indigo-200">
+                            {s.products?.length || 0} Produk Terisi
+                          </span>
+                        </h3>
+                        <p className="text-xs text-slate-500 mt-0.5">{s.description || "Tidak ada deskripsi"}</p>
+                      </div>
+                    </div>
+
+                    {/* Preview Produk dalam Etalase */}
+                    {s.products && s.products.length > 0 && (
+                      <div className="mt-3 flex flex-wrap gap-1.5 pt-2 border-t border-slate-100">
+                        {s.products.map((p: any) => (
+                          <span key={p.id} className="text-[11px] px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 font-medium">
+                            ✓ {p.name}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))
+              )}
             </div>
           </div>
         </div>

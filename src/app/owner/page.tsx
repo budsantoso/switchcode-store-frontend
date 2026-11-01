@@ -19,7 +19,8 @@ import {
   LogOut,
   FolderPlus,
   ArrowUpRight,
-  Store
+  Store,
+  Tag
 } from "lucide-react";
 
 export default function OwnerDashboardPage() {
@@ -208,15 +209,23 @@ export default function OwnerDashboardPage() {
               className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition cursor-pointer"
             >
               <Package className="w-4 h-4 text-slate-500" />
-              <span>Input & Katalog Produk</span>
+              <span>List Produk</span>
             </button>
 
             <button
               onClick={() => router.push("/admin/")}
               className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition cursor-pointer"
             >
-              <FolderPlus className="w-4 h-4 text-slate-500" />
-              <span>Kategori Etalase</span>
+              <Tag className="w-4 h-4 text-slate-500" />
+              <span>Kategori</span>
+            </button>
+
+            <button
+              onClick={() => router.push("/admin/")}
+              className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition cursor-pointer"
+            >
+              <Store className="w-4 h-4 text-slate-500" />
+              <span>Etalase Toko</span>
             </button>
 
             {/* Quick Links */}
